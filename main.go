@@ -11,6 +11,11 @@ import (
 var version = "dev"
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--version" {
+		fmt.Println("cc-switch v" + version)
+		return
+	}
+
 	app, err := ui.NewApp()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "错误: %v\n", err)

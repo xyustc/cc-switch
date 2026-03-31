@@ -48,6 +48,12 @@ mv cc-switch /usr/local/bin/
 cc-switch
 ```
 
+查看版本：
+
+```bash
+cc-switch --version
+```
+
 ### 界面操作
 
 | 操作 | 效果 |
@@ -132,6 +138,10 @@ git push origin v0.X.Y
 ```
 
 GitHub Actions 会自动构建并发布到 Releases。
+
+## 文档
+
+- [CHANGELOG.md](CHANGELOG.md) — 版本更新记录
 
 ## License
 
