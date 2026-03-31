@@ -29,10 +29,6 @@ type formModel struct {
 	errMsg    string
 	width     int
 	height    int
-	// Track field Y positions for mouse click
-	nameY     int
-	descY     int
-	settingsY int
 }
 
 func newForm(profiles *config.Profiles, editName string, width, height int) formModel {
