@@ -111,7 +111,8 @@ func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// List height is m.height, help line is at Y = m.height
 			if msg.Y >= m.height {
 				// Click in help area - check which button
-				btnX := 0
+				prefix := "[↑↓] 导航  [Enter] 切换  "
+				btnX := lipgloss.Width(prefix)
 				buttons := []struct {
 					label string
 					key   string
@@ -122,7 +123,7 @@ func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					{"[q] 退出", "q"},
 				}
 				for _, btn := range buttons {
-					btnX += len(btn.label) + 2
+					btnX += lipgloss.Width(btn.label) + 2
 					if msg.X < btnX {
 						switch btn.key {
 						case "n":
