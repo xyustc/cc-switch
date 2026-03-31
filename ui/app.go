@@ -59,6 +59,10 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.current == viewForm {
 			a.form.SetSize(msg.Width, msg.Height)
 		}
+		if a.current == viewConfirm {
+			a.confirm.width = msg.Width
+			a.confirm.height = msg.Height
+		}
 		return a, nil
 
 	case switchToFormMsg:

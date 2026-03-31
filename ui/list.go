@@ -52,6 +52,12 @@ var (
 	buttonStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("6")).
 			Underline(true)
+
+	// List item dimensions (must match DefaultDelegate settings)
+	itemHeight  = 3 // delegate height (2) + spacing (1)
+	titleHeight = 1
+	// Double-click detection threshold
+	doubleClickThreshold = 300 * time.Millisecond
 )
 
 func newList(profiles *config.Profiles, width, height int) listModel {
@@ -140,10 +146,6 @@ func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Click in list area - calculate which item was clicked
 			// List view structure: title area + items
-			// Title height = 1 (with padding it's rendered as 1 line)
-			// Each item = 2 lines (title + desc) + 1 spacing = 3 lines
-			const itemHeight = 3 // delegate height (2) + spacing (1)
-			const titleHeight = 1
 
 			// Calculate item index from click position
 			clickY := msg.Y
@@ -154,9 +156,9 @@ func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			itemIndex := (clickY - titleHeight) / itemHeight
 			if itemIndex >= 0 && itemIndex < len(m.list.Items()) {
-				// Double-click detection (within 300ms on same item)
+				// Double-click detection (within threshold on same item)
 				now := time.Now()
-				if now.Sub(m.lastClick) < 300*time.Millisecond && itemIndex == m.lastClickY {
+				if now.Sub(m.lastClick) < doubleClickThreshold && itemIndex == m.lastClickY {
 					// Double click - switch profile
 					m.list.Select(itemIndex)
 					return m, m.switchSelected()
