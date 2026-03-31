@@ -27,9 +27,15 @@ type formModel struct {
 	desc      textinput.Model
 	settings  textarea.Model
 	errMsg    string
+	width     int
+	height    int
+	// Track field Y positions for mouse click
+	nameY     int
+	descY     int
+	settingsY int
 }
 
-func newForm(profiles *config.Profiles, editName string) formModel {
+func newForm(profiles *config.Profiles, editName string, width, height int) formModel {
 	name := textinput.New()
 	name.Placeholder = "profile 名称 (a-z, 0-9, _, -)"
 	name.Focus()
@@ -40,7 +46,11 @@ func newForm(profiles *config.Profiles, editName string) formModel {
 	ta := textarea.New()
 	ta.Placeholder = `{"env": {"ANTHROPIC_AUTH_TOKEN": "sk-..."}}`
 	ta.SetHeight(8)
-	ta.SetWidth(60)
+	if width > 20 {
+		ta.SetWidth(width - 4)
+	} else {
+		ta.SetWidth(60)
+	}
 
 	m := formModel{
 		profiles: profiles,
@@ -49,6 +59,8 @@ func newForm(profiles *config.Profiles, editName string) formModel {
 		name:     name,
 		desc:     desc,
 		settings: ta,
+		width:    width,
+		height:   height,
 	}
 
 	// Pre-fill when editing
@@ -66,11 +78,45 @@ func newForm(profiles *config.Profiles, editName string) formModel {
 	return m
 }
 
+func (m *formModel) SetSize(width, height int) {
+	m.width = width
+	m.height = height
+	if width > 20 {
+		m.settings.SetWidth(width - 4)
+	}
+}
+
 func (m formModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
 func (m formModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.MouseMsg:
+		if msg.Action == tea.MouseActionPress {
+			// Check which field was clicked based on Y position
+			// Approximate Y positions (calculated from View)
+			nameY := 2          // After title
+			descY := nameY + 3  // After name field
+			settingsY := descY + 3 // After desc field
+
+			clickY := msg.Y
+			switch {
+			case clickY >= nameY && clickY < nameY+2:
+				m.setFocus(fieldName)
+			case clickY >= descY && clickY < descY+2:
+				m.setFocus(fieldDesc)
+			case clickY >= settingsY:
+				m.setFocus(fieldSettings)
+			}
+		}
+		return m.updateInputs(msg)
+
+	case tea.WindowSizeMsg:
+		m.SetSize(msg.Width, msg.Height)
+		return m, nil
+	}
+
 	key, ok := msg.(tea.KeyMsg)
 	if !ok {
 		return m.updateInputs(msg)
@@ -86,34 +132,14 @@ func (m formModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.field = (m.field + 2) % 3
 		}
-		m.name.Blur()
-		m.desc.Blur()
-		m.settings.Blur()
-		switch m.field {
-		case fieldName:
-			m.name.Focus()
-		case fieldDesc:
-			m.desc.Focus()
-		case fieldSettings:
-			m.settings.Focus()
-		}
+		m.updateFocus()
 		return m, nil
 
 	case "enter":
 		if m.field != fieldSettings {
 			// Tab to next field on Enter (except in textarea)
 			m.field = (m.field + 1) % 3
-			m.name.Blur()
-			m.desc.Blur()
-			m.settings.Blur()
-			switch m.field {
-			case fieldName:
-				m.name.Focus()
-			case fieldDesc:
-				m.desc.Focus()
-			case fieldSettings:
-				m.settings.Focus()
-			}
+			m.updateFocus()
 			return m, nil
 		}
 
@@ -122,6 +148,25 @@ func (m formModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m.updateInputs(msg)
+}
+
+func (m *formModel) setFocus(field formField) {
+	m.field = field
+	m.updateFocus()
+}
+
+func (m *formModel) updateFocus() {
+	m.name.Blur()
+	m.desc.Blur()
+	m.settings.Blur()
+	switch m.field {
+	case fieldName:
+		m.name.Focus()
+	case fieldDesc:
+		m.desc.Focus()
+	case fieldSettings:
+		m.settings.Focus()
+	}
 }
 
 func (m formModel) save() (tea.Model, tea.Cmd) {

@@ -28,6 +28,8 @@ type switchToConfirmMsg struct {
 // App is the top-level bubbletea model.
 type App struct {
 	current view
+	width   int
+	height  int
 	list    listModel
 	form    formModel
 	confirm confirmModel
@@ -40,7 +42,7 @@ func NewApp() (*App, error) {
 	}
 	return &App{
 		current: viewList,
-		list:    newList(profiles),
+		list:    newList(profiles, 60, 20),
 	}, nil
 }
 
@@ -50,8 +52,15 @@ func (a *App) Init() tea.Cmd {
 
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		a.width = msg.Width
+		a.height = msg.Height
+		a.list.SetSize(msg.Width, msg.Height-4)
+		a.form.SetSize(msg.Width, msg.Height)
+		return a, nil
+
 	case switchToFormMsg:
-		a.form = newForm(a.list.profiles, msg.editName)
+		a.form = newForm(a.list.profiles, msg.editName, a.width, a.height)
 		a.current = viewForm
 		return a, a.form.Init()
 
@@ -59,6 +68,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.confirm = newConfirm(
 			"删除 profile \""+msg.profileName+"\"？",
 			func() tea.Msg { return deleteConfirmedMsg{name: msg.profileName} },
+			a.width, a.height,
 		)
 		a.current = viewConfirm
 		return a, nil
@@ -68,7 +78,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err != nil {
 			return a, tea.Quit
 		}
-		a.list = newList(profiles)
+		a.list = newList(profiles, a.width, a.height-4)
 		a.current = viewList
 		return a, a.list.Init()
 
