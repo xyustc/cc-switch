@@ -100,10 +100,10 @@ func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.MouseMsg:
-		if msg.Action == tea.MouseActionPress {
-			// Check if click is in the help area (bottom)
-			helpY := m.height
-			if msg.Y >= helpY {
+		if msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft {
+			// Help area is at the bottom (after list content)
+			// List height is m.height, help line is at Y = m.height
+			if msg.Y >= m.height {
 				// Click in help area - check which button
 				btnX := 0
 				buttons := []struct {
@@ -138,23 +138,36 @@ func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			// Click in list area
-			// Double-click detection (within 300ms on same line)
-			now := time.Now()
-			if now.Sub(m.lastClick) < 300*time.Millisecond && msg.Y == m.lastClickY {
-				// Double click - switch profile
-				return m, m.switchSelected()
-			}
-			m.lastClick = now
-			m.lastClickY = msg.Y
+			// Click in list area - calculate which item was clicked
+			// List view structure: title area + items
+			// Title height = 1 (with padding it's rendered as 1 line)
+			// Each item = 2 lines (title + desc) + 1 spacing = 3 lines
+			const itemHeight = 3 // delegate height (2) + spacing (1)
+			const titleHeight = 1
 
-			// Single click - select item
-			// Calculate visible start index
-			visibleStart := 0 // list delegate handles this internally
-			itemIndex := visibleStart + msg.Y - 1 // -1 for title
+			// Calculate item index from click position
+			clickY := msg.Y
+			if clickY < titleHeight {
+				// Clicked on title, ignore
+				return m, nil
+			}
+
+			itemIndex := (clickY - titleHeight) / itemHeight
 			if itemIndex >= 0 && itemIndex < len(m.list.Items()) {
+				// Double-click detection (within 300ms on same item)
+				now := time.Now()
+				if now.Sub(m.lastClick) < 300*time.Millisecond && itemIndex == m.lastClickY {
+					// Double click - switch profile
+					m.list.Select(itemIndex)
+					return m, m.switchSelected()
+				}
+				m.lastClick = now
+				m.lastClickY = itemIndex
+
+				// Single click - select item
 				m.list.Select(itemIndex)
 			}
+			return m, nil
 		}
 
 	case deleteConfirmedMsg:
